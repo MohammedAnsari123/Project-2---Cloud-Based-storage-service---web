@@ -13,13 +13,12 @@
 
 ## 📖 Table of Contents
 1.  [Project Overview](#-project-overview)
-2.  [System Architecture](#-system-architecture)
+2.  [System Architecture & Diagrams](#-system-architecture--diagrams)
 3.  [Key Features](#-key-features)
 4.  [Technology Stack](#-technology-stack)
 5.  [Installation & Setup](#-installation--setup)
-6.  [Configuration](#-configuration)
-7.  [API Documentation](#-api-documentation)
-8.  [Security Implementation](#-security-implementation)
+6.  [Security Implementation](#-security-implementation)
+7.  [Contributors](#-contributors)
 
 ---
 
@@ -164,7 +163,7 @@ flowchart LR
 ### 1. Clone Repository
 ```bash
 git clone https://github.com/MohammedAnsari123/Project-2.git
-cd Project-2
+cd <Project folder name>
 ```
 
 ### 2. Backend Configuration
