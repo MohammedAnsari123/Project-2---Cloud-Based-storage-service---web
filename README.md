@@ -41,11 +41,11 @@ This project was developed to solve the challenge of **secure, decentralized fil
 The application follows a **Client-Server Architecture** separated by RESTful API endpoints.
 
 ```mermaid
-graph TD
-    Client[React Client (SPA)] <-->|HTTPS/JSON| API[Express REST API]
-    API <-->|Auth & Data| DB[(Supabase PostgreSQL)]
-    API <-->|File Stream| Storage[Supabase Storage Objects]
-    Client -->|Direct Upload/Download| Storage
+flowchart TD
+    Client["React Client (SPA)"] <-->|"HTTPS/JSON"| API["Express REST API"]
+    API <-->|"Auth & Data"| DB[("Supabase PostgreSQL")]
+    API <-->|"File Stream"| Storage["Supabase Storage Objects"]
+    Client -->|"Direct Upload/Download"| Storage
 ```
 
 *   **Frontend**: Handles UI/UX, State Management (Context API), and client-side routing.
