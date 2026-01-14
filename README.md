@@ -216,7 +216,6 @@ Access the application at **`http://localhost:5173`**.
 
 ## 👥 Contributors
 
-*   **Mohammed Ansari** - *Lead Developer*
+*   **Mohammed Ansari**
 
 ---
-
