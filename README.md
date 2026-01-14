@@ -57,43 +57,31 @@ flowchart TD
 
 ## ✨ Key Features
 
-### �️ Database Schema
-We utilize a normalized relational schema to ensure data integrity and efficient querying.
+### 🗄️ Simplified Data Model
+A high-level view of how data is connected.
 
 ```mermaid
-erDiagram
-    USERS ||--o{ FOLDERS : owns
-    USERS ||--o{ FILES : owns
-    FOLDERS ||--o{ FILES : contains
-    FOLDERS ||--o{ FOLDERS : contains
-    USERS ||--o{ SHARES : "grants access"
-    FILES ||--o{ SHARES : "is shared"
-    FOLDERS ||--o{ SHARES : "is shared"
-    FILES ||--o{ LINK_SHARES : "has public link"
-    FOLDERS ||--o{ LINK_SHARES : "has public link"
-
-    USERS {
-        uuid id PK
-        string email
-    }
-    FOLDERS {
-        uuid id PK
-        string name
-        uuid parent_id FK
-        uuid owner_id FK
-    }
-    FILES {
-        uuid id PK
-        string name
-        int size
-        uuid folder_id FK
-        uuid owner_id FK
-    }
+graph TD
+    User((User)) -->|Owns| Folder[Folder]
+    User -->|Owns| File[File]
+    Folder -->|Contains| File
+    Folder -->|Contains| SubFolder[Sub-Folder]
+    User -->|Shares| SharedLink[Public Link]
 ```
 
-## ✨ Key Features
+### 🔄 User Flow
+Typical user journey through the application.
 
-### �📂 Advanced File Management
+```mermaid
+flowchart LR
+    A[用来 Login] --> B[Dashboard]
+    B --> C{Action?}
+    C -->|Upload| D[File Storage]
+    C -->|Create Folder| E[New Folder]
+    C -->|Share| F[Generate Link]
+```
+
+### 📂 Advanced File Management
 *   **Hierarchical Folder System**: Unlimited nested folders with Breadcrumb navigation (`Home > Work > Project A`).
 *   **Drag & Drop**: Native HTML5 Drag and Drop API implementation for intuitive file moving.
 *   **Multi-View Interface**: Toggle between **Grid View** (Visual) and **List View** (Detailed) layouts.
