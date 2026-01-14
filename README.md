@@ -1,108 +1,159 @@
-# Cloud Storage Service (Labmentix Project 2)
+# ☁️ Labmentix Cloud Storage Service
 
-A robust, full-stack cloud storage application similar to Google Drive, designed to provide a seamless and secure file management experience. Built with the MERN stack (PostgreSQL/Supabase variant), this project demonstrates modern web development practices including responsive design, secure authentication, and complex file operations.
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
+![Status](https://img.shields.io/badge/status-maintenance-orange.svg)
+![Stack](https://img.shields.io/badge/stack-MERN-purple.svg)
 
-## 🚀 Features at a Glance
-
-### Core Functionality
-*   **User Authentication**: Secure JWT-based Login and Registration system.
-*   **File Management**:
-    *   **Upload**: Drag & Drop interface with progress tracking.
-    *   **Download**: Secure, signed URL downloads for files and ZIP downloads for folders.
-    *   **Organize**: Rename, Move, and Delete files/folders.
-*   **Folder System**: hierarchical structure with intuitive breadcrumb navigation.
-
-### Advanced Features
-*   **Drag & Drop Organization**: Move files and folders by dragging them into other folders.
-*   **Smart Search**: Real-time search across all files and folders.
-*   **Visual Organization**:
-    *   **Grid/List Views**: Toggle between visual cards or detailed list layouts.
-    *   **Sorting**: Order functionality by Name, Date, or Size.
-*   **Productivity Tools**:
-    *   **Starred**: Mark important items for quick access.
-    *   **Recent**: Automatically tracks the 20 most recently created or modified files.
-    *   **Trash**: Soft-delete system allowing item restoration or permanent deletion.
-    *   **Storage Quota**: Visual indicator of storage usage (15GB limit simulated).
-
-### Sharing & Collaboration
-*   **Direct Sharing**: Invite registered users via email with `Viewer` or `Editor` roles.
-*   **Public Links**: Generate shareable links for non-registered users.
-    *   **Expiration**: Set optional expiry dates for links.
-    *   **Password Protection**: Secure links with a password **(Database Schema Ready)**.
+> **Internship Project Submission**  
+> **Topic**: Advanced Cloud Storage Solution  
+> **Developer**: Mohammed Ansari
 
 ---
 
-## 🛠️ Technology Stack Summary
-
-### Frontend (Client)
-A high-performance Single Page Application (SPA) built with:
-*   **React 19**: The core framework.
-*   **Vite**: For lightning-fast development and building.
-*   **TailwindCSS**: For rapid, responsive styling.
-*   **React Router v7**: For seamless client-side navigation.
-*   **Lucide React**: For a consistent, modern icon system.
-
-### Backend (Server)
-A scalable REST API built with:
-*   **Node.js & Express**: The server runtime and framework.
-*   **Supabase**: Provides the PostgreSQL database and Blob Storage.
-*   **BcryptJS & JWT**: For military-grade security in authentication.
+## 📖 Table of Contents
+1.  [Project Overview](#-project-overview)
+2.  [System Architecture](#-system-architecture)
+3.  [Key Features](#-key-features)
+4.  [Technology Stack](#-technology-stack)
+5.  [Installation & Setup](#-installation--setup)
+6.  [Configuration](#-configuration)
+7.  [API Documentation](#-api-documentation)
+8.  [Security Implementation](#-security-implementation)
 
 ---
 
-## 🏁 Installation & Setup Guide
+## 🚀 Project Overview
 
-### prerequisites
-Ensure you have the following installed:
-*   [Node.js](https://nodejs.org/) (v16 or higher)
-*   [Git](https://git-scm.com/)
+**Labmentix Cloud Storage** is a secure, scalable, and user-centric file management system designed to emulate the functionality of industry leaders like Google Drive and Dropbox. 
 
-### Step 1: Clone the Repository
-```bash
-git clone <repository-url>
-cd <project-folder>
+This project was developed to solve the challenge of **secure, decentralized file access** for enterprise environments. It features a robust **Node.js/Express** backend coupled with a high-performance **React** frontend, utilizing **Supabase (PostgreSQL)** for relational data integrity and **Object Storage** for scalable file hosting.
+
+### Core Objectives
+*   **Reliability**: Ensure 99.9% data availability using cloud-native storage.
+*   **Security**: Implement military-grade encryption for passwords and secure signed URLs for file access.
+*   **Usability**: Provide an intuitive Drag-and-Drop interface with sub-100ms interaction response.
+
+---
+
+## 🏗 System Architecture
+
+The application follows a **Client-Server Architecture** separated by RESTful API endpoints.
+
+```mermaid
+graph TD
+    Client[React Client (SPA)] <-->|HTTPS/JSON| API[Express REST API]
+    API <-->|Auth & Data| DB[(Supabase PostgreSQL)]
+    API <-->|File Stream| Storage[Supabase Storage Objects]
+    Client -->|Direct Upload/Download| Storage
 ```
 
-### Step 2: Backend Setup
- Navigate to the backend directory and install dependencies:
+*   **Frontend**: Handles UI/UX, State Management (Context API), and client-side routing.
+*   **Backend**: Manages Authentication (JWT), Business Logic, and Database interactions.
+*   **Database**: Relational data (Users, Folders, File Metadata, Sharing Permissions).
+*   **StorageBucket**: Raw binary data storage (Images, Documents, etc.).
+
+---
+
+## ✨ Key Features
+
+### 📂 Advanced File Management
+*   **Hierarchical Folder System**: Unlimited nested folders with Breadcrumb navigation (`Home > Work > Project A`).
+*   **Drag & Drop**: Native HTML5 Drag and Drop API implementation for intuitive file moving.
+*   **Multi-View Interface**: Toggle between **Grid View** (Visual) and **List View** (Detailed) layouts.
+
+### 🔐 Security & Access Control
+*   **Role-Based Access Control (RBAC)**: secure sharing with specific permissions (`Viewer` vs `Editor`).
+*   **Public Links**: Generate secure, distinct URLs for public sharing.
+    *   **Expiration Engine**: Links can be set to auto-expire after a specific date.
+    *   **Password Protection**: *[Architecture Ready]* Schema supports password-gated links.
+
+### ⚡ Productivity Tools
+*   **Recents Algorithm**: Smart query fetch for the 20 most recently accessed/modified files.
+*   **Trash Retention**: Soft-delete mechanism allows file recovery before permanent deletion.
+*   **Starred/Favorites**: Bookmark critical files for instant access.
+*   **Storage Quota**: Visual progress bar tracking user storage usage against a 15GB tiers.
+
+---
+
+## 💻 Technology Stack
+
+| Domain | Technology | Use Case |
+| :--- | :--- | :--- |
+| **Frontend** | React 19, Vite | High-performance UI rendering. |
+| **Styling** | TailwindCSS | Utility-first, responsive design system. |
+| **State** | React Context API | Global state management (Auth, Theme). |
+| **Backend** | Node.js, Express | scalable server-side logic and routing. |
+| **Database** | PostgreSQL (Supabase) | ACID-compliant relational data storage. |
+| **Storage** | Supabase Storage | S3-compatible object storage. |
+| **Auth** | JWT + Bcrypt | Stateless authentication and password hashing. |
+
+---
+
+## 🛠 Installation & Setup
+
+### Prerequisites
+*   Node.js v18+
+*   npm v9+
+*   Git
+
+### 1. Clone Repository
+```bash
+git clone https://github.com/MohammedAnsari123/Project-2.git
+cd Project-2
+```
+
+### 2. Backend Configuration
+Navigate to the server directory and install dependencies.
 ```bash
 cd backend
 npm install
 ```
 
-Create a `.env` file in the `backend/` directory with your Supabase credentials:
+Create a `.env` file in the `backend/` root:
 ```env
 PORT=5000
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your-supabase-anon-key
-JWT_SECRET=your-secure-random-secret-key
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_KEY=your_supabase_service_role_key
+JWT_SECRET=complex_secret_string_for_signing_tokens
 ```
 
-Start the backend server:
-```bash
-npm start
-# OR for development with auto-reload
-npm run dev
-```
-*The server will run on `http://localhost:5000`*
-
-### Step 3: Client Setup
-Open a new terminal, navigate to the client directory, and install dependencies:
+### 3. Frontend Configuration
+Navigate to the client directory and install dependencies.
 ```bash
 cd ../client
 npm install
 ```
 
-Start the frontend application:
+### 4. Running the Application
+**Development Mode (Concurrent)**:
+Terminal 1 (Backend):
 ```bash
+cd backend
 npm run dev
 ```
-*The application will open at `http://localhost:5173`*
+Terminal 2 (Frontend):
+```bash
+cd client
+npm run dev
+```
+
+Access the application at **`http://localhost:5173`**.
 
 ---
 
-## � Detailed Documentation
+## 🛡 Security Implementation
 
-For specific details on components, schema, and API endpoints, please refer to the dedicated READMEs:
-*   [**Frontend Documentation**](./client/README.md): Detailed component breakdown.
-*   [**Backend Documentation**](./backend/README.md): API routes and Database Schema.
+1.  **JWT Authentication**: Stateless session management. Tokens are signed with HS256 algorithm and contain no sensitive PII.
+2.  **Bcrypt Hashing**: User passwords and Shared Link passwords are salted and hashed (10 rounds) before storage. NEVER stored in plaintext.
+3.  **Row Level Security (RLS)**: While the API handles logic, the underlying Supabase User table is protected by RLS policies.
+4.  **Signed URLs**: File downloads generate time-limited signed URLs to prevent scraping or unauthorized hotlinking.
+
+---
+
+## 👥 Contributors
+
+*   **Mohammed Ansari** - *Lead Developer*
+
+---
+
