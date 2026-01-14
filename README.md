@@ -36,52 +36,92 @@ This project was developed to solve the challenge of **secure, decentralized fil
 
 ---
 
-## 🏗 System Architecture
+## 🏗 System Architecture & Diagrams
 
-The application follows a **Client-Server Architecture** separated by RESTful API endpoints.
+### 1. High-Level Architecture (Normal Diagram)
+A simple view of how the system works.
+
+```mermaid
+graph LR
+    User((User)) 
+    Frontend[Client / Browser]
+    Backend[Server / API]
+    Database[(Database / Storage)]
+
+    User -- "Interacts with" --> Frontend
+    Frontend -- "Requests Data" --> Backend
+    Backend -- "Saves/Loads" --> Database
+```
+
+### 2. System Architecture (Technical)
+How the technologies connect technically.
 
 ```mermaid
 flowchart TD
-    Client["React Client (SPA)"] <-->|"HTTPS/JSON"| API["Express REST API"]
-    API <-->|"Auth & Data"| DB[("Supabase PostgreSQL")]
-    API <-->|"File Stream"| Storage["Supabase Storage Objects"]
-    Client -->|"Direct Upload/Download"| Storage
+    Client["React Frontend (Vite)"] 
+    API["Node.js / Express API"]
+    Auth["Supabase Auth"]
+    DB[("PostgreSQL Database")]
+    Storage["Object Storage"]
+
+    Client <-->|"JSON / HTTPS"| API
+    Client -->|"Direct Upload"| Storage
+    API <-->|"Verify User"| Auth
+    API <-->|"Query Data"| DB
+    API -->|"Generate Signed URLs"| Storage
 ```
 
-*   **Frontend**: Handles UI/UX, State Management (Context API), and client-side routing.
-*   **Backend**: Manages Authentication (JWT), Business Logic, and Database interactions.
-*   **Database**: Relational data (Users, Folders, File Metadata, Sharing Permissions).
-*   **StorageBucket**: Raw binary data storage (Images, Documents, etc.).
+### 3. Database Schema (ER Diagram)
+The relationships between your data.
+
+```mermaid
+erDiagram
+    USER ||--o{ FOLDER : "Creates"
+    USER ||--o{ FILE : "Uploads"
+    FOLDER ||--o{ FILE : "Contains"
+    FOLDER ||--o{ FOLDER : "Parent of"
+    USER ||--o{ SHARE : "Shares"
+    
+    USER {
+        string email
+        string password
+    }
+    FILE {
+        string name
+        int size
+        string type
+    }
+    FOLDER {
+        string name
+        date created_at
+    }
+```
+
+### 4. User Workflow (Flow Chart)
+The typical path a user takes.
+
+```mermaid
+flowchart LR
+    Start([Open App]) --> Login{Logged In?}
+    Login -- No --> Register[Register / Login]
+    Login -- Yes --> Dashboard[Dashboard]
+    
+    Dashboard --> Actions
+    
+    subgraph Actions [User Actions]
+        direction TB
+        Upload[Upload File]
+        Create[Create Folder]
+        Moving[Drag & Drop]
+        Share[Share Link]
+    end
+    
+    Actions --> Save[(Auto-Save to Cloud)]
+```
 
 ---
 
 ## ✨ Key Features
-
-### 🗄️ Simplified Data Model
-A high-level view of how data is connected.
-
-```mermaid
-graph TD
-    User((User)) -->|Owns| Folder[Folder]
-    User -->|Owns| File[File]
-    Folder -->|Contains| File
-    Folder -->|Contains| SubFolder[Sub-Folder]
-    User -->|Shares| SharedLink[Public Link]
-```
-
-### 🔄 User Flow
-Typical user journey through the application.
-
-```mermaid
-flowchart LR
-    A[用来 Login] --> B[Dashboard]
-    B --> C{Action?}
-    C -->|Upload| D[File Storage]
-    C -->|Create Folder| E[New Folder]
-    C -->|Share| F[Generate Link]
-```
-
-### 📂 Advanced File Management
 *   **Hierarchical Folder System**: Unlimited nested folders with Breadcrumb navigation (`Home > Work > Project A`).
 *   **Drag & Drop**: Native HTML5 Drag and Drop API implementation for intuitive file moving.
 *   **Multi-View Interface**: Toggle between **Grid View** (Visual) and **List View** (Detailed) layouts.
