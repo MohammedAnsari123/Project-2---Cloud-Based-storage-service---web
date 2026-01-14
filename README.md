@@ -57,7 +57,43 @@ flowchart TD
 
 ## ✨ Key Features
 
-### 📂 Advanced File Management
+### �️ Database Schema
+We utilize a normalized relational schema to ensure data integrity and efficient querying.
+
+```mermaid
+erDiagram
+    USERS ||--o{ FOLDERS : owns
+    USERS ||--o{ FILES : owns
+    FOLDERS ||--o{ FILES : contains
+    FOLDERS ||--o{ FOLDERS : contains
+    USERS ||--o{ SHARES : "grants access"
+    FILES ||--o{ SHARES : "is shared"
+    FOLDERS ||--o{ SHARES : "is shared"
+    FILES ||--o{ LINK_SHARES : "has public link"
+    FOLDERS ||--o{ LINK_SHARES : "has public link"
+
+    USERS {
+        uuid id PK
+        string email
+    }
+    FOLDERS {
+        uuid id PK
+        string name
+        uuid parent_id FK
+        uuid owner_id FK
+    }
+    FILES {
+        uuid id PK
+        string name
+        int size
+        uuid folder_id FK
+        uuid owner_id FK
+    }
+```
+
+## ✨ Key Features
+
+### �📂 Advanced File Management
 *   **Hierarchical Folder System**: Unlimited nested folders with Breadcrumb navigation (`Home > Work > Project A`).
 *   **Drag & Drop**: Native HTML5 Drag and Drop API implementation for intuitive file moving.
 *   **Multi-View Interface**: Toggle between **Grid View** (Visual) and **List View** (Detailed) layouts.
