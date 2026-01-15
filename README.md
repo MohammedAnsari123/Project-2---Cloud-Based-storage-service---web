@@ -162,8 +162,8 @@ flowchart LR
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/MohammedAnsari123/Project-2.git
-cd <Project folder name>
+git clone https://github.com/MohammedAnsari123 Project-2---Cloud-Based-storage-service---web.git
+cd Project-2---Cloud-Based-storage-service---web
 ```
 
 ### 2. Backend Configuration
@@ -184,7 +184,7 @@ JWT_SECRET=complex_secret_string_for_signing_tokens
 ### 3. Frontend Configuration
 Navigate to the client directory and install dependencies.
 ```bash
-cd ../client
+cd client
 npm install
 ```
 
