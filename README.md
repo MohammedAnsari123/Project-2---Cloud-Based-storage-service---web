@@ -162,7 +162,7 @@ flowchart LR
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/MohammedAnsari123 Project-2---Cloud-Based-storage-service---web.git
+git clone https://github.com/MohammedAnsari123/Project-2---Cloud-Based-storage-service---web.git
 cd Project-2---Cloud-Based-storage-service---web
 ```
 
