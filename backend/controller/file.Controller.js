@@ -36,6 +36,7 @@ const uploadFileMetadata = async (req, res) => {
 const getFiles = async (req, res) => {
     const userId = req.user.id;
     const parent_id = req.query.parent_id === 'null' ? null : (req.query.parent_id || null);
+    const { sortBy = 'created_at', order = 'desc', filterType = 'all' } = req.query;
 
     const supabase = getAuthClient(req);
     let query = supabase
@@ -50,6 +51,23 @@ const getFiles = async (req, res) => {
         // Root: Only mine
         query = query.eq('owner_id', userId).is('folder_id', null);
     }
+
+    // Filter by Type
+    if (filterType !== 'all') {
+        if (filterType === 'image') {
+            query = query.ilike('type', 'image/%');
+        } else if (filterType === 'video') {
+            query = query.ilike('type', 'video/%');
+        } else if (filterType === 'document') {
+            // Basic document types check
+            query = query.or('type.ilike.application/pdf,type.ilike.application/msword,type.ilike.application/vnd.openxmlformats-officedocument.wordprocessingml.document,type.ilike.text/plain');
+        }
+    }
+
+    // Sorting
+    // Supabase order: column, { ascending: boolean }
+    const isAscending = order === 'asc';
+    query = query.order(sortBy, { ascending: isAscending });
 
     const { data, error } = await query;
 

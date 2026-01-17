@@ -7,7 +7,7 @@ import { getStorageUsage } from '../services/folderApi';
 const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
   const { token } = useAuth();
-  const [storage, setStorage] = useState({ used: 0, total: 15 * 1024 * 1024 * 1024 });
+  const [storage, setStorage] = useState({ used: 0, total: 10 * 1024 * 1024 * 1024 });
 
   useEffect(() => {
     const fetchStorage = async () => {
@@ -22,8 +22,14 @@ const Sidebar = ({ isOpen, onClose }) => {
     fetchStorage();
   }, [token]);
 
-  const usedGB = (storage.used / (1024 * 1024 * 1024)).toFixed(2);
-  const totalGB = (storage.total / (1024 * 1024 * 1024)).toFixed(0);
+  const formatBytes = (bytes) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   const percentage = Math.min(100, Math.max(0, (storage.used / storage.total) * 100));
 
   const isActive = (path) => location.pathname === path;
@@ -115,7 +121,7 @@ const Sidebar = ({ isOpen, onClose }) => {
             ></div>
           </div>
           <div className="mt-2 text-xs text-xs text-gray-500">
-            {usedGB} GB of {totalGB} GB used
+            {formatBytes(storage.used)} of {formatBytes(storage.total)} used
           </div>
         </div>
       </aside>

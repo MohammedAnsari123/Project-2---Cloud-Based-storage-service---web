@@ -1,5 +1,6 @@
 const supabase = require('../config/supabase');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const { createClient } = require('@supabase/supabase-js');
 
 // Helper to get Service client (if env var exists) or fallback to Anon (relying on RLS)
@@ -79,7 +80,7 @@ exports.shareResource = async (req, res) => {
 
 exports.createPublicLink = async (req, res) => {
     try {
-        const { resourceId, resourceType } = req.body;
+        const { resourceId, resourceType, password, expiresAt } = req.body;
         const userId = req.user.id;
         const { createClient } = require('@supabase/supabase-js');
 
@@ -91,6 +92,11 @@ exports.createPublicLink = async (req, res) => {
         );
 
         const token = crypto.randomBytes(32).toString('hex');
+        let passwordHash = null;
+
+        if (password) {
+            passwordHash = await bcrypt.hash(password, 10);
+        }
 
         const { data, error } = await authSupabase
             .from('link_shares')
@@ -98,7 +104,9 @@ exports.createPublicLink = async (req, res) => {
                 resource_id: resourceId,
                 resource_type: resourceType,
                 token: token,
-                created_by: userId
+                created_by: userId,
+                password_hash: passwordHash,
+                expires_at: expiresAt || null
             })
             .select()
             .single();
@@ -116,6 +124,7 @@ exports.createPublicLink = async (req, res) => {
 exports.getPublicResource = async (req, res) => {
     try {
         const { token } = req.params;
+        const providedPassword = req.headers['x-share-password'];
         const client = getServiceClient(); // Use admin/service client if available
 
         const { data: linkData, error: linkError } = await client
@@ -124,13 +133,24 @@ exports.getPublicResource = async (req, res) => {
             .eq('token', token)
             .single();
 
-        if (linkError) {
-            console.error("Link Lookup Error:", linkError);
-            // It might be 406 Not Acceptable or 404
-        }
-
         if (linkError || !linkData) {
             return res.status(404).json({ error: "Invalid or expired link" });
+        }
+
+        // Check Expiry
+        if (linkData.expires_at && new Date(linkData.expires_at) < new Date()) {
+            return res.status(410).json({ error: "Link has expired" });
+        }
+
+        // Check Password
+        if (linkData.password_hash) {
+            if (!providedPassword) {
+                return res.status(401).json({ error: "Password required" });
+            }
+            const isMatch = await bcrypt.compare(providedPassword, linkData.password_hash);
+            if (!isMatch) {
+                return res.status(401).json({ error: "Invalid password" });
+            }
         }
 
         let resourceData = null;
@@ -158,6 +178,7 @@ exports.getPublicResource = async (req, res) => {
 exports.getPublicFolderContents = async (req, res) => {
     try {
         const { token } = req.params;
+        const providedPassword = req.headers['x-share-password'];
         const client = getServiceClient(); // Use admin/service client
 
         // 1. Verify Token and get Resource ID
@@ -169,6 +190,22 @@ exports.getPublicFolderContents = async (req, res) => {
 
         if (linkError || !linkData) {
             return res.status(404).json({ error: "Invalid or expired link" });
+        }
+
+        // Check Expiry
+        if (linkData.expires_at && new Date(linkData.expires_at) < new Date()) {
+            return res.status(410).json({ error: "Link has expired" });
+        }
+
+        // Check Password
+        if (linkData.password_hash) {
+            if (!providedPassword) {
+                return res.status(401).json({ error: "Password required" });
+            }
+            const isMatch = await bcrypt.compare(providedPassword, linkData.password_hash);
+            if (!isMatch) {
+                return res.status(401).json({ error: "Invalid password" });
+            }
         }
 
         if (linkData.resource_type !== 'folder') {

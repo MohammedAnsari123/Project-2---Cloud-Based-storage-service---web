@@ -40,6 +40,7 @@ const loginUser = async (req, res) => {
 
 const getStorageUsage = async (req, res) => {
     const userId = req.user.id;
+    const userEmail = req.user.email;
     try {
         const { data, error } = await supabase
             .from('files')
@@ -50,9 +51,15 @@ const getStorageUsage = async (req, res) => {
 
         const totalBytes = data.reduce((acc, file) => acc + (file.size || 0), 0);
 
+        // Custom Limits
+        const PREMIUM_EMAILS = ['ansari@gmail.com', 'mohammed@gmail.com'];
+        const limitBytes = PREMIUM_EMAILS.includes(userEmail)
+            ? 2 * 1024 * 1024 * 1024 * 1024  // 2 TB
+            : 10 * 1024 * 1024 * 1024;       // 10 GB
+
         return res.json({
             usedBytes: totalBytes,
-            totalBytes: 15 * 1024 * 1024 * 1024 // 15 GB
+            totalBytes: limitBytes
         });
     } catch (error) {
         return res.status(500).json({ error: error.message });

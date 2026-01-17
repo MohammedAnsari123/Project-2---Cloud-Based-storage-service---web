@@ -1,81 +1,79 @@
-# 🎨 Client Documentation (Frontend)
+# 🎨 Client-Side Documentation
 
-This directory contains the source code for the **React Single Page Application (SPA)**. It is engineered for speed, responsiveness, and code maintainability.
+**Scope**: This directory contains the **React Single Page Application (SPA)**. It is engineered for high performance, responsiveness, and a premium user experience (UX).
 
-## 🏛 Directory Structure
+## 🏛 Application Architecture
 
-```text
-client/
-├── public/              # Static assets (favicons, manifest)
-├── src/
-│   ├── assets/          # Images and global styles
-│   ├── components/      # Reusable UI Atoms and Molecules
-│   │   ├── Sidebar.jsx      # Navigation & Storage Quota
-│   │   ├── Breadcrumb.jsx   # Path Navigation Logic
-│   │   ├── FileUpload.jsx   # Drag & Drop Zone
-│   │   └── ...
-│   ├── context/         # React Context (Global State)
-│   │   └── authContext.jsx  # User Session Management
-│   ├── layouts/         # Page Layout Wrappers
-│   ├── pages/           # Route Views (Dashboard, Login, etc.)
-│   ├── services/        # API Integration Layer (Fetch Wrappers)
-│   ├── App.jsx          # Route Definitions
-│   └── main.jsx         # Entry Point
-└── package.json         # Dependency Manifest
-```
+The frontend is built using a **Component-Based Architecture**, focusing on reusability and separation of concerns.
+
+### Key Libraries & Tools
+*   **React 19**: Leveraging the latest concurrent features for smooth rendering.
+*   **Vite**: Next-generation bundler for instant dev server start and optimized production builds.
+*   **TailwindCSS**: Utility-first styling for consistent design tokens and responsive layouts.
+*   **Lucide React**: Modern, lightweight SVG icon library.
+*   **Axios / Fetch**: For communicating with the API Gateway.
 
 ---
 
-## 🧩 Key Architecture Decisions
+## 🧩 Component Breakdown
 
-### 1. Component Design Pattern
-We utilize a **Atomic Design** inspired approach. Small, reusable components (like `Searchbar`, `Breadcrumb`) are assembled into Page Views (`Dashboard`).
-*   **Benefit**: changing the search bar style update it everywhere instantly.
+The `src/components/` directory houses our reusable UI building blocks.
 
-### 2. Centralized API Service (`folderApi.js`)
-Instead of making `fetch()` calls inside components, all network requests are abstracted into a service layer.
-```javascript
-// Example: The component doesn't need to know the endpoint URL
-export const getFolders = async (token, parentId) => {
-  // ...implementation details
-}
-```
-*   **Benefit**: Easy to refactor backend URLs or switch to Axios/React Query without touching UI code.
+### 1. `Sidebar.jsx` (Navigation & Quota)
+*   **Function**: Handles global navigation and displays persistent storage usage.
+*   **Key Feature**: **Dynamic Quota Formatter**.
+    *   It accepts raw bytes from the backend and automatically converts them to the most readable unit (`1024 B` -> `1 KB`, `1048576 B` -> `1 MB`).
+    *   Visual progress bar changes color (Blue -> Red) as the user approaches their limit.
 
-### 3. Global Authentication State
-Using **React Context API** (`authContext.jsx`), we provide the `user` object and `token` to the entire component tree.
-*   **Mechanism**: On load, the app checks `localStorage` for a token. If valid, it hydrates the user state. If invalid, it redirects to Login via `ProtectedRoute`.
+### 2. `Dashboard.jsx` (File Explorer)
+*   **Function**: The detailed view for browsing files and folders.
+*   **Key Features**:
+    *   **View Toggle**: Users can switch between a visual **Grid View** (cards) and a data-rich **List View** (table).
+    *   **Context Aware**: The view updates automatically based on sorting filters selected in the top bar.
+
+### 3. `ShareModal.jsx` (Access Control)
+*   **Function**: A unified interface for all sharing operations.
+*   **Business Logic**:
+    *   **Tab 1 (Invite)**: Checks email validity and sends internal invites.
+    *   **Tab 2 (Public Link)**: Provides UI controls for setting **Passwords** and **Expiration Dates**. It handles the encryption of the password client-side before sending it to the API.
+
+---
+
+## ⚛️ State Management
+
+We utilize **React Context API** to manage global application state without "prop drilling".
+
+*   **`AuthContext`**: 
+    *   Persists the JWT token in `localStorage`.
+    *   Provides the `user` object and `login/logout` methods to the entire component tree.
+    *   Protects private routes (redirects to Login if token is missing).
 
 ---
 
 ## ⚡ Performance Optimizations
 
-1.  **Debounced Search**: The search input (`Searchbar.jsx`) uses debouncing to prevent API spamming while the user types.
-2.  **Memoization**: Heavy computations (like sorting file lists) are memoized to prevent re-calculation on every render frame.
-3.  **Lazy Loading**: The router supports lazy loading for non-critical routes (like `PublicView`) to reduce the initial bundle size.
-4.  **Optimistic UI**: The UI updates instantly for actions like "Starring" a file, assuming success before the API responds, making the app feel native-fast.
+1.  **Code Splitting**: Routes are lazy-loaded to ensure the initial bundle size remains small.
+2.  **Debouncing**: The Search Bar waits for 300ms of user inactivity before triggering an API call, reducing server load.
+3.  **Optimistic UI Updates**: When a user "Stars" a file, the UI updates instantly while the request processes in the background, making the app feel responsive.
 
 ---
 
-## 🛠 Component Reference
+## 🚀 Development Setup
 
-### `Dashboard.jsx` (The Core)
-This is the most complex component, handling:
-*   **State**: `viewMode` (Grid/List), `sortBy`, `fileList`.
-*   **Effects**: Fetches data whenever the URL `folderId` changes.
-*   **Drag & Drop**: Implements `onDragStart`, `onDragOver`, `onDrop` handlers to allow visual file organization.
+To start the frontend development environment:
 
-### `ShareModal.jsx`
-A multi-tabbed modal handling complex business logic:
-*   **Tab 1 (Invite)**: Checks email validity and sends invite via API.
-*   **Tab 2 (Public Link)**: Generates unique tokens. Displays options for *Expiry* and *Password* if the backend supports it.
-*   **Tab 3 (Manage)**: Lists current access holders with "Remove" capabilities.
-
----
-
-## 🎨 Styling Philosophy
-
-We use **TailwindCSS** for rapid development.
-*   **Responsive**: Layouts use `flex-col` on mobile and `flex-row` on desktop (`lg:flex-row`).
-*   **Interactive**: Extensive use of `hover:`, `focus:`, and `group-hover` states for polished UX.
-*   **Consistent**: A defined color palette (Blue-600 primary, Gray-50 backgrounds) ensures professional aesthetics.
+1.  **Install Dependencies**:
+    ```bash
+    npm install
+    ```
+2.  **Environment Configuration** (`.env`):
+    ```env
+    VITE_API_URL=http://localhost:5000/api
+    VITE_SUPABASE_URL=your_project_url
+    VITE_SUPABASE_KEY=your_public_key
+    ```
+3.  **Run Dev Server**:
+    ```bash
+    npm run dev
+    ```
+    The application will be available at `http://localhost:5173`.

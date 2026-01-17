@@ -47,6 +47,7 @@ exports.getFolders = async (req, res) => {
     try {
         const userId = req.user.id;
         const parent_id = req.query.parent_id === 'null' ? null : (req.query.parent_id || null);
+        const { sortBy = 'name', order = 'asc' } = req.query;
 
         const supabase = getAuthClient(req);
         let query = supabase
@@ -61,6 +62,10 @@ exports.getFolders = async (req, res) => {
             // Root "My Drive": Only show my folders
             query = query.eq('owner_id', userId).is('parent_id', null);
         }
+
+        // Sorting
+        const isAscending = order === 'asc';
+        query = query.order(sortBy, { ascending: isAscending });
 
         const { data, error } = await query;
 

@@ -1,80 +1,92 @@
-# ⚙️ Server Documentation (Backend)
+# ⚙️ Server-Side Documentation
 
-This directory hosts the **RESTful API** built on Node.js and Express. It serves as the secure gateway between the Client and the Database/Storage Infrastructure.
+**Scope**: This directory contains the source code for the RESTful API service. It acts as the secure intermediary between the client applications and the data layer.
 
-## 💾 Database Schema (PostgreSQL)
+## 🏛 Directory Structure
 
-The database is normalized to 3rd Normal Form (3NF) to ensure data integrity.
+The backend follows the **Model-View-Controller (MVC)** architectural pattern to ensure code modularity.
 
-### Entity Relationship Diagram (Conceptual)
-*   **User** `1:N` **Folders** (A user owns multiple folders)
-*   **User** `1:N` **Files** (A user owns multiple files)
-*   **Folder** `1:N` **Files** (A folder contains files)
-*   **Folder** `1:N` **Folder** (Recursive: Folders can contain folders)
-*   **User/Resources** `M:N` **Shares** (Users can have access to resources owned by others)
+```text
+backend/
+├── config/             # Database connection & Environment config
+├── controller/         # Business Logic & Request handling
+│   ├── file.Controller.js    # Uploads, Metadata, Listing
+│   ├── share.Controller.js   # Permission & Link logic
+│   └── user.Controller.js    # Auth & Quota logic
+├── middleware/         # Interceptors (Auth, Logging)
+├── routes/             # API Endpoint definitions
+├── utils/              # Helpers (JWT generation, formatters)
+└── server.js           # Entry point
+```
 
-### Key Tables
-1.  **`users`**: Authentication credentials (managed mostly by Supabase Auth).
-2.  **`profiles`**: Public user metadata (Display Name, Avatar).
-3.  **`folders`**:
-    *   `id` (PK), `name`, `parent_id` (FK -> folders.id), `owner_id` (FK -> users.id).
-4.  **`files`**:
-    *   `id` (PK), `name`, `size`, `mime_type`, `storage_path`, `folder_id` (FK), `owner_id` (FK).
-5.  **`link_shares`**:
-    *   `token` (Unique Index), `resource_id`, `expires_at`, `password_hash`.
+---
+
+## 💾 Database Schema
+
+The system uses **PostgreSQL** hosted on Supabase. Interactions are handled via the `supabase-js` client, but the underlying structure is strict SQL.
+
+### Core Tables
+
+| Table Name | Description | Key Columns |
+| :--- | :--- | :--- |
+| **`users`** | Identity store (managed by Auth). | `id` (UUID), `email`, `last_sign_in` |
+| **`folders`** | Recursive folder structure. | `id`, `name`, `parent_id` (Self-ref FK), `owner_id` |
+| **`files`** | File metadata registry. | `id`, `size`, `type`, `storage_path`, `folder_id` |
+| **`shares`** | Internal Permissions (RBAC). | `resource_id`, `grantee_id`, `role` (viewer/editor) |
+| **`link_shares`** | Public Share Tokens. | `token` (Index), `password_hash`, `expires_at` |
+
+---
+
+## 🔐 Security Architecture
+
+### 1. Authentication Strategy
+*   **JWT (JSON Web Tokens)**: We use stateless authentication. On login, the server issues a signed JWT containing the user's UUID and email.
+*   **Middleware Protection**: The `auth.Middleware.js` intercepts every protected route, verifies the token signature, and attaches the user context to the request object.
+
+### 2. Password Security (Bcrypt)
+For **Public Shared Links**, we implemented a custom password protection flow:
+1.  **Hashing**: When a user sets a password, we hash it using `bcryptjs` (Salt Rounds: 10).
+2.  **Storage**: Only the hash is stored in the `link_shares` table.
+3.  **Verification**: When a visitor enters a password, the server compares the input against the stored hash. Timing-safe comparison is used to prevent side-channel attacks.
+
+### 3. Authorization (RLS)
+Even if the API were bypassed, the database layer enforces **Row Level Security**.
+*   *Policy*: Users can only `SELECT` rows where `owner_id` matches their auth UID.
+*   *Policy*: Shared resources are accessible if a record exists in the `shares` table linking the resource to the user.
 
 ---
 
 ## 🔌 API Reference
 
-All endpoints are prefixed with `/api`.
-Most endpoints require the `Authorization: Bearer <token>` header.
+### File Management (`/api/files`)
+*   **`GET /`**: List files. Supports advanced querying.
+    *   *Query Param* `sortBy`: Sort by `name`, `size`, `created_at`.
+    *   *Query Param* `order`: `asc` or `desc`.
+    *   *Query Param* `filterType`: `image`, `video`, `document`.
+*   **`POST /`**: Upload file metadata (File binary goes to Storage Bucket directly).
+*   **`PUT /:id`**: Rename a file.
 
-### 1. Authentication (`/auth`)
-| Endpoint | Method | Body Payload | Description |
-| :--- | :--- | :--- | :--- |
-| `/register` | `POST` | `{ email, password, fullName }` | Creates new user. |
-| `/login` | `POST` | `{ email, password }` | Returns JWT Token. |
+### Folder Management (`/api/folders`)
+*   **`GET /`**: List folders. Returns hierarchical adjacency list.
+*   **`POST /`**: Create a new folder. Optional `parent_id` to nest it.
 
-### 2. File Operations (`/files`)
-| Endpoint | Method | Description |
-| :--- | :--- | :--- |
-| `/upload` | `POST` | Saves file metadata after storage upload. |
-| `/:id` | `PUT` | Rename file. |
-| `/:id` | `DELETE` | Soft delete (move to trash). |
-| `/recent` | `GET` | **Algorithm**: Queries `created_at` DESC limit 20. |
+### Sharing (`/api/shares`)
+*   **`POST /link`**: Create a secure public link.
+    *   *Body*: `{ resourceId, password, expiresAt }`
+*   **`GET /public/:token/items`**: Resolve a public link.
+    *   *Header*: `x-share-password` (Required if link is protected).
 
-### 3. Sharing System (`/shares`)
-| Endpoint | Method | Body Payload | Description |
-| :--- | :--- | :--- | :--- |
-| `/link` | `POST` | `{ resourceId, expiresAt, password }` | Creates Public Link. |
-| `/public/:token` | `GET` | `None` | Resolves a public link token to a resource. |
-| `/invite` | `POST` | `{ email, resourceId, role }` | Grants specific user access. |
-
----
-
-## 🛡 Security Measures
-
-### Request Validation
-*   Incoming requests are validated for data types (e.g., preventing NoSQL injection or payload pollution).
-*   **Middleware**: `auth.Middleware.js` intercepts every protected request to verify the JWT signature before any controller logic executes.
-
-### File Security
-*   **Storage**: Files are NOT stored on the server disk. They are streamed directly to Supabase Storage Buckets.
-*   **Access**: Files use **Signed URLs**. A file URL is valid only for 60 seconds, preventing unauthorized sharing of direct links.
-
-### Password Security
-*   **Bcrypt**: Shared link passwords are hashed with a salt round of 10. `bcrypt.compare()` is used during link access validation.
+### User (`/api/user`)
+*   **`GET /storage`**: Get quota usage.
+    *   **Logic**: Returns Total vs Used bytes. Custom logic applies 2TB limit for Admin accounts (`ansari@gmail.com`).
 
 ---
 
 ## 📦 Dependencies
 
-*   **Runtime**: Node.js
-*   **Framework**: Express
-*   **ORM/DB Client**: @supabase/supabase-js
-*   **Security**: cors, helmet (recommended), bcryptjs, jsonwebtoken
-*   **Utils**: dotenv, archiver (for ZIP downloads)
-
----
-
+*   **Runtime**: Node.js v18+
+*   **Framework**: Express.js
+*   **Database Client**: @supabase/supabase-js
+*   **Encryption**: bcryptjs
+*   **Environment**: dotenv
+*   **Security**: helmet, cors

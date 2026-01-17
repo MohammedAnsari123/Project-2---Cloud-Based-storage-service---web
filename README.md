@@ -1,221 +1,164 @@
-# ☁️ Labmentix Cloud Storage Service
+# Labmentix Cloud Storage
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
-![Status](https://img.shields.io/badge/status-maintenance-orange.svg)
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Status](https://img.shields.io/badge/status-production--ready-success.svg)
 ![Stack](https://img.shields.io/badge/stack-MERN-purple.svg)
 
-> **Internship Project Submission**  
+> **Submission for Internship Project**  
 > **Topic**: Advanced Cloud Storage Solution  
 > **Developer**: Mohammed Ansari
 
 ---
 
-## 📖 Table of Contents
-1.  [Project Overview](#-project-overview)
-2.  [System Architecture & Diagrams](#-system-architecture--diagrams)
-3.  [Key Features](#-key-features)
-4.  [Technology Stack](#-technology-stack)
-5.  [Installation & Setup](#-installation--setup)
-6.  [Security Implementation](#-security-implementation)
-7.  [Contributors](#-contributors)
+## 📋 Executive Summary
+
+**Labmentix Cloud Storage** is an enterprise-grade file management system designed to replicate the core functionalities of industry-standard platforms like Google Drive and Dropbox. Engineered for scalability and security, it provides a centralized repository for digital assets with robust sharing capabilities.
+
+This project demonstrates a full-stack implementation of a secure, cloud-native application, featuring **Role-Based Access Control (RBAC)**, **Real-time Storage Quotas**, and **Military-grade Encryption** for shared links.
 
 ---
 
-## 🚀 Project Overview
+## 🏗 System Architecture
 
-**Labmentix Cloud Storage** is a secure, scalable, and user-centric file management system designed to emulate the functionality of industry leaders like Google Drive and Dropbox. 
+The application is built on a decoupled **Client-Server Architecture**, ensuring separation of concerns and independent scalability.
 
-This project was developed to solve the challenge of **secure, decentralized file access** for enterprise environments. It features a robust **Node.js/Express** backend coupled with a high-performance **React** frontend, utilizing **Supabase (PostgreSQL)** for relational data integrity and **Object Storage** for scalable file hosting.
-
-### Core Objectives
-*   **Reliability**: Ensure 99.9% data availability using cloud-native storage.
-*   **Security**: Implement military-grade encryption for passwords and secure signed URLs for file access.
-*   **Usability**: Provide an intuitive Drag-and-Drop interface with sub-100ms interaction response.
-
----
-
-## 🏗 System Architecture & Diagrams
-
-### 1. High-Level Architecture (Normal Diagram)
-A simple view of how the system works.
-
-```mermaid
-graph LR
-    User((User)) 
-    Frontend[Client / Browser]
-    Backend[Server / API]
-    Database[(Database / Storage)]
-
-    User -- "Interacts with" --> Frontend
-    Frontend -- "Requests Data" --> Backend
-    Backend -- "Saves/Loads" --> Database
-```
-
-### 2. System Architecture (Technical)
-How the technologies connect technically.
+### High-Level Design
+The system orchestrates interactions between four key components:
+1.  **Client (Frontend)**: A responsive SPA that handles user interactions and local state.
+2.  **API Gateway (Backend)**: Middleware that enforces security, business logic, and request validation.
+3.  **Identity Provider (Auth)**: Manages session tokens (JWT) and user identity.
+4.  **Data Persistence (DB & Storage)**: Stores relational metadata and binary file objects.
 
 ```mermaid
 flowchart TD
-    Client["React Frontend (Vite)"] 
-    API["Node.js / Express API"]
-    Auth["Supabase Auth"]
-    DB[("PostgreSQL Database")]
-    Storage["Object Storage"]
-
-    Client <-->|"JSON / HTTPS"| API
-    Client -->|"Direct Upload"| Storage
-    API <-->|"Verify User"| Auth
-    API <-->|"Query Data"| DB
-    API -->|"Generate Signed URLs"| Storage
-```
-
-### 3. Database Schema (ER Diagram)
-The relationships between your data.
-
-```mermaid
-erDiagram
-    USER ||--o{ FOLDER : "Creates"
-    USER ||--o{ FILE : "Uploads"
-    FOLDER ||--o{ FILE : "Contains"
-    FOLDER ||--o{ FOLDER : "Parent of"
-    USER ||--o{ SHARE : "Shares"
+    User((User)) -->|HTTPS| LoadBalancer[Client / Frontend]
+    LoadBalancer -->|JSON API| API[Node.js API Server]
     
-    USER {
-        string email
-        string password
-    }
-    FILE {
-        string name
-        int size
-        string type
-    }
-    FOLDER {
-        string name
-        date created_at
-    }
-```
-
-### 4. User Workflow (Flow Chart)
-The typical path a user takes.
-
-```mermaid
-flowchart LR
-    Start([Open App]) --> Login{Logged In?}
-    Login -- No --> Register[Register / Login]
-    Login -- Yes --> Dashboard[Dashboard]
-    
-    Dashboard --> Actions
-    
-    subgraph Actions [User Actions]
-        direction TB
-        Upload[Upload File]
-        Create[Create Folder]
-        Moving[Drag & Drop]
-        Share[Share Link]
+    subgraph Infrastructure
+        API -->|Auth Check| SupabaseAuth[Supabase Auth]
+        API -->|Read/Write Metadata| Postgres[(PostgreSQL DB)]
+        API -->|Stream Files| S3[Object Storage Buckets]
     end
-    
-    Actions --> Save[(Auto-Save to Cloud)]
 ```
+
+### Database Schema
+The data model is normalized to **3rd Normal Form (3NF)** to ensure integrity.
+
+*   **Users**: Central identity table linked to Auth provider.
+*   **Folders**: Self-referencing table supporting infinite nesting depth (`parent_id`).
+*   **Files**: Metadata records linked to immutable storage objects.
+*   **Shares**: Polymorphic permissions table handling both File and Folder access.
+*   **LinkShares**: Tracks public share tokens, their expiry, and hashed passwords.
 
 ---
 
 ## ✨ Key Features
-*   **Hierarchical Folder System**: Unlimited nested folders with Breadcrumb navigation (`Home > Work > Project A`).
-*   **Drag & Drop**: Native HTML5 Drag and Drop API implementation for intuitive file moving.
-*   **Multi-View Interface**: Toggle between **Grid View** (Visual) and **List View** (Detailed) layouts.
 
-### 🔐 Security & Access Control
-*   **Role-Based Access Control (RBAC)**: secure sharing with specific permissions (`Viewer` vs `Editor`).
-*   **Public Links**: Generate secure, distinct URLs for public sharing.
-    *   **Expiration Engine**: Links can be set to auto-expire after a specific date.
-    *   **Password Protection**: *[Architecture Ready]* Schema supports password-gated links.
+### 🔐 Security & Compliance
+*   **Zero-Trust Password Storage**: All share link passwords are salted and hashed using **BCrypt** (12 rounds) before storage. 
+*   **Time-Limited Access**: Public links support automated **Expiration Dates**, ensuring temporary access is revoked automatically.
+*   **Row-Level Security (RLS)**: Database policies enforce strict data isolation; users can only query data they own or have been explicitly granted access to.
 
-### ⚡ Productivity Tools
-*   **Recents Algorithm**: Smart query fetch for the 20 most recently accessed/modified files.
-*   **Trash Retention**: Soft-delete mechanism allows file recovery before permanent deletion.
-*   **Starred/Favorites**: Bookmark critical files for instant access.
-*   **Storage Quota**: Visual progress bar tracking user storage usage against a 15GB tiers.
+### 📂 Advanced File Management
+*   **Dynamic Organization**: 
+    *   **Nested Folders**: Create complex hierarchies with Breadcrumb navigation.
+    *   **Drag-and-Drop**: Native HTML5 API integration for intuitive file uploads.
+*   **Smart Navigation**:
+    *   **Filtering**: Isolate files by type (Media, Documents, Archives).
+    *   **Sorting**: Multi-column sorting (Name, Date, Size) with direction toggle.
+*   **Trash & Recovery**: A comprehensive "Soft Delete" system allows users to restore accidentally deleted items within a retention window.
 
----
+### 👥 Collaboration
+*   **Granular Permissions**: Share resources with specific users as either `Viewer` (Read-only) or `Editor` (Read-Write).
+*   **Secure Public Links**: Generate unique, cryptographically random links for external sharing, protected by optional passwords.
 
-## 💻 Technology Stack
-
-| Domain | Technology | Use Case |
-| :--- | :--- | :--- |
-| **Frontend** | React 19, Vite | High-performance UI rendering. |
-| **Styling** | TailwindCSS | Utility-first, responsive design system. |
-| **State** | React Context API | Global state management (Auth, Theme). |
-| **Backend** | Node.js, Express | scalable server-side logic and routing. |
-| **Database** | PostgreSQL (Supabase) | ACID-compliant relational data storage. |
-| **Storage** | Supabase Storage | S3-compatible object storage. |
-| **Auth** | JWT + Bcrypt | Stateless authentication and password hashing. |
+### 📊 Resource Management
+*   **Live Quota Tracking**: Real-time storage calculation displaying usage in KB, MB, or GB.
+*   **Tiered Storage Policies**:
+    *   **Standard Plan**: 10 GB limit for regular users.
+    *   **Enterprise Plan**: 2 TB limit for administrators.
 
 ---
 
-## 🛠 Installation & Setup
+## 💻 Technolgoy Stack
+
+We utilized a modern, robust stack to ensure performance and maintainability.
+
+| Layer | Technology | Key Libraries/Modules | Description |
+| :--- | :--- | :--- | :--- |
+| **Frontend** | **React 19** | `react-router-dom`, `lucide-react` | Component-based UI with client-side routing. |
+| **Styling** | **TailwindCSS** | `postcss`, `autoprefixer` | Utility-first CSS for rapid, responsive design. |
+| **Backend** | **Node.js** | `express`, `cors`, `helmet` | Event-driven runtime for scalable API services. |
+| **Database** | **PostgreSQL** | `@supabase/supabase-js` | Relational database with real-time capabilities. |
+| **Storage** | **S3 Storage** | - | Scalable object storage for binary files. |
+| **Security** | **BCrypt** | `bcryptjs`, `jsonwebtoken` | Hashing algorithms and session token management. |
+
+---
+
+## 🛠 Installation Guide
+
+Follow these steps to deploy the application locally.
 
 ### Prerequisites
-*   Node.js v18+
-*   npm v9+
-*   Git
+*   **Node.js**: v18.0.0 or higher
+*   **npm**: v9.0.0 or higher
+*   **Git**: Latest version
 
-### 1. Clone Repository
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/MohammedAnsari123/Project-2---Cloud-Based-storage-service---web.git
 cd Project-2---Cloud-Based-storage-service---web
 ```
 
 ### 2. Backend Configuration
-Navigate to the server directory and install dependencies.
-```bash
-cd backend
-npm install
-```
+The backend serves as the bridge between the UI and the Database.
 
-Create a `.env` file in the `backend/` root:
-```env
-PORT=5000
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_KEY=your_supabase_service_role_key
-JWT_SECRET=complex_secret_string_for_signing_tokens
-```
+1.  Navigate to the backend directory:
+    ```bash
+    cd backend
+    npm install
+    ```
+2.  Create a `.env` file for environment variables:
+    ```env
+    PORT=5000
+    # Supabase Configuration
+    VITE_SUPABASE_URL=your_project_url
+    VITE_SUPABASE_KEY=your_anon_key
+    SUPABASE_SERVICE_KEY=your_service_role_key
+    # Security
+    JWT_SECRET=your_secure_random_string
+    ```
+3.  Start the server:
+    ```bash
+    npm run dev
+    ```
 
 ### 3. Frontend Configuration
-Navigate to the client directory and install dependencies.
-```bash
-cd client
-npm install
-```
+The frontend provides the user interface.
 
-### 4. Running the Application
-**Development Mode (Concurrent)**:
-Terminal 1 (Backend):
-```bash
-cd backend
-npm run dev
-```
-Terminal 2 (Frontend):
-```bash
-cd client
-npm run dev
-```
-
-Access the application at **`http://localhost:5173`**.
+1.  Open a new terminal and navigate to the client directory:
+    ```bash
+    cd client
+    npm install
+    ```
+2.  Create a `.env` file:
+    ```env
+    VITE_API_URL=http://localhost:5000/api
+    VITE_SUPABASE_URL=your_project_url
+    VITE_SUPABASE_KEY=your_anon_key
+    ```
+3.  Launch the application:
+    ```bash
+    npm run dev
+    ```
 
 ---
 
-## 🛡 Security Implementation
+## 🛡 Future Roadmap
 
-1.  **JWT Authentication**: Stateless session management. Tokens are signed with HS256 algorithm and contain no sensitive PII.
-2.  **Bcrypt Hashing**: User passwords and Shared Link passwords are salted and hashed (10 rounds) before storage. NEVER stored in plaintext.
-3.  **Row Level Security (RLS)**: While the API handles logic, the underlying Supabase User table is protected by RLS policies.
-4.  **Signed URLs**: File downloads generate time-limited signed URLs to prevent scraping or unauthorized hotlinking.
-
----
-
-## 👥 Contributors
-
-*   **Mohammed Ansari**
-
----
+While the MVP is complete, the following features are planned for Phase 2:
+*   [ ] **Version Control**: Maintaining history of file edits.
+*   [ ] **Activity Logs**: Auditable trails of who accessed which file.
+*   [ ] **Thumbnail Generation**: Server-side processing for image/video previews.
+*   [ ] **Two-Factor Authentication (2FA)**: Additional security layer for login.
