@@ -77,8 +77,69 @@ const getFiles = async (req, res) => {
         .eq('is_deleted', false);
 
     if (parent_id) {
-        // Subfolder: Trust RLS (Shared or Owned)
-        query = query.eq('folder_id', parent_id);
+        // COMPLEX LOGIC: Check permissions effectively to allow "Recursive Sharing"
+        let hasAccess = false;
+        const serviceClient = getServiceClient();
+
+        // A. Check Ownership/RLS first (Native check)
+        // Optimization: We can try to fetch the folder. If I own it, I have access.
+        const { data: folderOwner } = await serviceClient
+            .from('folders')
+            .select('owner_id, parent_id')
+            .eq('id', parent_id)
+            .single();
+
+        if (folderOwner && folderOwner.owner_id === userId) {
+            hasAccess = true;
+        }
+
+        // B. Check Share (Recursive)
+        if (!hasAccess && folderOwner) {
+            let currParent = parent_id;
+            let attempts = 0;
+            while (!hasAccess && currParent && attempts < 20) {
+                const { data: share } = await serviceClient
+                    .from('shares')
+                    .select('*')
+                    .eq('resource_id', currParent)
+                    .eq('grantee_user_id', userId)
+                    .single();
+
+                if (share) {
+                    hasAccess = true;
+                    break;
+                }
+
+                // Go to grandparent
+                // We already have parent info for the first iteration (folderOwner), but for loop we need to fetch
+                if (attempts > 0) {
+                    const { data: p } = await serviceClient
+                        .from('folders')
+                        .select('parent_id, owner_id')
+                        .eq('id', currParent)
+                        .single();
+                    if (p && p.owner_id === userId) { hasAccess = true; break; }
+                    currParent = p ? p.parent_id : null;
+                } else {
+                    // First iter, use known parent
+                    currParent = folderOwner.parent_id;
+                }
+                attempts++;
+            }
+        }
+
+        if (hasAccess) {
+            // Use Service Client to fetch files (Bypass RLS)
+            query = serviceClient
+                .from('files')
+                .select('*')
+                .eq('is_deleted', false)
+                .eq('folder_id', parent_id);
+        } else {
+            // Fallback
+            query = query.eq('folder_id', parent_id);
+        }
+
     } else {
         // Root: Only mine
         query = query.eq('owner_id', userId).is('folder_id', null);
