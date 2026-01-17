@@ -79,16 +79,37 @@ exports.getFolders = async (req, res) => {
                 hasAccess = true;
             }
 
-            // B. Check Share
+            // B. Check Share (Recursive)
             if (!hasAccess) {
-                const { data: share } = await serviceClient
-                    .from('shares')
-                    .select('*')
-                    .eq('resource_id', parent_id)
-                    .eq('grantee_user_id', userId)
-                    .single();
+                let currParent = parent_id;
+                let attempts = 0;
+                while (!hasAccess && currParent && attempts < 20) {
+                    const { data: share } = await serviceClient
+                        .from('shares')
+                        .select('*')
+                        .eq('resource_id', currParent)
+                        .eq('grantee_user_id', userId)
+                        .single();
 
-                if (share) hasAccess = true;
+                    if (share) {
+                        hasAccess = true;
+                        break;
+                    }
+
+                    const { data: parentFolder } = await serviceClient
+                        .from('folders')
+                        .select('parent_id, owner_id')
+                        .eq('id', currParent)
+                        .single();
+
+                    if (parentFolder && parentFolder.owner_id === userId) {
+                        hasAccess = true;
+                        break;
+                    }
+
+                    currParent = parentFolder ? parentFolder.parent_id : null;
+                    attempts++;
+                }
             }
 
             if (hasAccess) {
