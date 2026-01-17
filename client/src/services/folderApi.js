@@ -1,4 +1,4 @@
-const API = "http://localhost:5000/api/folders";
+const API = "https://project-2-cloud-based-storage-service-web.onrender.com/api/folders";
 
 const getHeaders = (token) => ({
   "Content-Type": "application/json",
@@ -58,7 +58,7 @@ export const getBreadcrumbs = async (token, folderId) => {
 };
 
 export const saveFileMetadata = async (token, fileData) => {
-  const response = await fetch("http://localhost:5000/api/files", {
+  const response = await fetch("https://project-2-cloud-based-storage-service-web.onrender.com/api/files", {
     method: "POST",
     headers: getHeaders(token),
     body: JSON.stringify(fileData)
@@ -70,7 +70,7 @@ export const saveFileMetadata = async (token, fileData) => {
 };
 
 export const getFiles = async (token, parentId) => {
-  const url = `http://localhost:5000/api/files?parent_id=${parentId ?? 'null'}`;
+  const url = `https://project-2-cloud-based-storage-service-web.onrender.com/api/files?parent_id=${parentId ?? 'null'}`;
   const response = await fetch(url, {
     method: "GET",
     headers: getHeaders(token)
@@ -120,7 +120,7 @@ export const moveFolder = async (token, folderId, targetParentId) => {
 };
 
 export const moveFile = async (token, fileId, parentId) => {
-  const response = await fetch(`http://localhost:5000/api/files/${fileId}/move`, {
+  const response = await fetch(`https://project-2-cloud-based-storage-service-web.onrender.com/api/files/${fileId}/move`, {
     method: "PUT",
     headers: getHeaders(token),
     body: JSON.stringify({ parent_id: parentId })
@@ -133,7 +133,7 @@ export const moveFile = async (token, fileId, parentId) => {
 };
 
 export const toggleStar = async (token, resourceId, resourceType) => {
-  const response = await fetch(`http://localhost:5000/api/stars/toggle`, {
+  const response = await fetch(`https://project-2-cloud-based-storage-service-web.onrender.com/api/stars/toggle`, {
     method: "POST",
     headers: getHeaders(token),
     body: JSON.stringify({ resourceId, resourceType })
@@ -143,7 +143,7 @@ export const toggleStar = async (token, resourceId, resourceType) => {
 };
 
 export const getStarred = async (token) => {
-  const response = await fetch(`http://localhost:5000/api/stars`, {
+  const response = await fetch(`https://project-2-cloud-based-storage-service-web.onrender.com/api/stars`, {
     method: "GET",
     headers: getHeaders(token)
   });
@@ -152,7 +152,7 @@ export const getStarred = async (token) => {
 };
 
 export const renameFile = async (token, fileId, newName) => {
-  const response = await fetch(`http://localhost:5000/api/files/${fileId}`, {
+  const response = await fetch(`https://project-2-cloud-based-storage-service-web.onrender.com/api/files/${fileId}`, {
     method: "PUT",
     headers: getHeaders(token),
     body: JSON.stringify({ name: newName })
@@ -165,7 +165,7 @@ export const renameFile = async (token, fileId, newName) => {
 };
 
 export const deleteFile = async (token, fileId) => {
-  const response = await fetch(`http://localhost:5000/api/files/${fileId}`, {
+  const response = await fetch(`https://project-2-cloud-based-storage-service-web.onrender.com/api/files/${fileId}`, {
     method: "DELETE",
     headers: getHeaders(token)
   });
@@ -177,7 +177,7 @@ export const deleteFile = async (token, fileId) => {
 };
 
 export const shareResource = async (token, email, resourceId, resourceType, role) => {
-  const response = await fetch(`http://localhost:5000/api/shares`, {
+  const response = await fetch(`https://project-2-cloud-based-storage-service-web.onrender.com/api/shares`, {
     method: "POST",
     headers: getHeaders(token),
     body: JSON.stringify({ email, resourceId, resourceType, role })
@@ -191,7 +191,7 @@ export const shareResource = async (token, email, resourceId, resourceType, role
 };
 
 export const searchResources = async (token, query) => {
-  const response = await fetch(`http://localhost:5000/api/search?query=${encodeURIComponent(query)}`, {
+  const response = await fetch(`https://project-2-cloud-based-storage-service-web.onrender.com/api/search?query=${encodeURIComponent(query)}`, {
     method: "GET",
     headers: getHeaders(token)
   });
@@ -204,7 +204,7 @@ export const searchResources = async (token, query) => {
 };
 
 export const getSharedWithMe = async (token) => {
-  const response = await fetch("http://localhost:5000/api/shares/me", {
+  const response = await fetch("https://project-2-cloud-based-storage-service-web.onrender.com/api/shares/me", {
     method: "GET",
     headers: getHeaders(token)
   });
@@ -217,7 +217,7 @@ export const getSharedWithMe = async (token) => {
 };
 
 export const createPublicLink = async (token, resourceId, resourceType, expiresAt, password) => {
-  const response = await fetch(`http://localhost:5000/api/shares/link`, {
+  const response = await fetch(`https://project-2-cloud-based-storage-service-web.onrender.com/api/shares/link`, {
     method: "POST",
     headers: getHeaders(token),
     body: JSON.stringify({ resourceId, resourceType, expiresAt, password })
@@ -227,19 +227,19 @@ export const createPublicLink = async (token, resourceId, resourceType, expiresA
 };
 
 export const getPublicResource = async (token) => {
-  const response = await fetch(`http://localhost:5000/api/shares/public/${token}`);
+  const response = await fetch(`https://project-2-cloud-based-storage-service-web.onrender.com/api/shares/public/${token}`);
   if (!response.ok) throw new Error("Link invalid or expired");
   return response.json();
 };
 
 export const getPublicContents = async (token) => {
-  const response = await fetch(`http://localhost:5000/api/shares/public/${token}/items`);
+  const response = await fetch(`https://project-2-cloud-based-storage-service-web.onrender.com/api/shares/public/${token}/items`);
   if (!response.ok) throw new Error("Failed to load items");
   return response.json();
 };
 
 export const getStorageUsage = async (token) => {
-  const response = await fetch("http://localhost:5000/api/user/storage", {
+  const response = await fetch("https://project-2-cloud-based-storage-service-web.onrender.com/api/user/storage", {
     method: "GET",
     headers: getHeaders(token)
   });

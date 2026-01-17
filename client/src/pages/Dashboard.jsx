@@ -328,7 +328,7 @@ const Dashboard = () => {
           onClick={async (e) => {
             e.stopPropagation();
             try {
-              const res = await fetch(`http://localhost:5000/api/download/folder/${item.id}`, {
+              const res = await fetch(`https://project-2-cloud-based-storage-service-web.onrender.com/api/download/folder/${item.id}`, {
                 headers: { Authorization: `Bearer ${token}` }
               });
               if (!res.ok) throw new Error("Download failed");

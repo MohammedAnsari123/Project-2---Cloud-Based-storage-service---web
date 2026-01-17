@@ -14,7 +14,7 @@ const TrashFile = () => {
       setLoading(true);
       if (!token) return;
 
-      const response = await fetch('http://localhost:5000/api/trash', {
+      const response = await fetch('https://project-2-cloud-based-storage-service-web.onrender.com/api/trash', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -36,7 +36,7 @@ const TrashFile = () => {
   // Restore Item
   const handleRestore = async (id, type) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/trash/${type}/${id}/restore`, {
+      const response = await fetch(`https://project-2-cloud-based-storage-service-web.onrender.com/api/trash/${type}/${id}/restore`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -55,7 +55,7 @@ const TrashFile = () => {
     if (!confirmDelete) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/trash/${type}/${id}`, {
+      const response = await fetch(`https://project-2-cloud-based-storage-service-web.onrender.com/api/trash/${type}/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });

@@ -20,7 +20,7 @@ const ShareModal = ({ isOpen, onClose, onShare, onGetLink, resourceName, resourc
     const fetchSharedUsers = async () => {
         setLoadingUsers(true);
         try {
-            const response = await fetch(`http://localhost:5000/api/shares/users?resourceId=${resourceId}&resourceType=${resourceType}`, {
+            const response = await fetch(`https://project-2-cloud-based-storage-service-web.onrender.com/api/shares/users?resourceId=${resourceId}&resourceType=${resourceType}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             const data = await response.json();
@@ -87,7 +87,7 @@ const ShareModal = ({ isOpen, onClose, onShare, onGetLink, resourceName, resourc
 
     const handleRoleChange = async (shareId, newRole) => {
         try {
-            await fetch('http://localhost:5000/api/shares/role', {
+            await fetch('https://project-2-cloud-based-storage-service-web.onrender.com/api/shares/role', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ shareId, role: newRole })
@@ -101,7 +101,7 @@ const ShareModal = ({ isOpen, onClose, onShare, onGetLink, resourceName, resourc
     const handleRemoveAccess = async (shareId) => {
         if (!confirm("Remove access for this user?")) return;
         try {
-            await fetch('http://localhost:5000/api/shares/remove', {
+            await fetch('https://project-2-cloud-based-storage-service-web.onrender.com/api/shares/remove', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ shareId })

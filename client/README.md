@@ -68,7 +68,7 @@ To start the frontend development environment:
     ```
 2.  **Environment Configuration** (`.env`):
     ```env
-    VITE_API_URL=http://localhost:5000/api
+    VITE_API_URL=https://project-2-cloud-based-storage-service-web.onrender.com/api
     VITE_SUPABASE_URL=your_project_url
     VITE_SUPABASE_KEY=your_public_key
     ```

@@ -17,7 +17,7 @@ const Login = () => {
     setError("");
 
     try {
-      const response = await fetch('http://localhost:5000/api/user/login', {
+      const response = await fetch('https://project-2-cloud-based-storage-service-web.onrender.com/api/user/login', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
