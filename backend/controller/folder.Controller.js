@@ -9,6 +9,14 @@ const getAuthClient = (req) => {
     );
 }
 
+// Helper: Service Client for bypassing RLS
+const getServiceClient = () => {
+    return createClient(
+        process.env.VITE_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_KEY
+    );
+}
+
 exports.createFolder = async (req, res) => {
     try {
         const supabase = getAuthClient(req); // Use user's auth context
@@ -56,8 +64,43 @@ exports.getFolders = async (req, res) => {
             .eq('is_deleted', false);
 
         if (parent_id) {
-            // If viewing a subfolder, rely on RLS (could be mine or shared)
-            query = query.eq('parent_id', parent_id);
+            // COMPLEX LOGIC: Check permissions
+            let hasAccess = false;
+            const serviceClient = getServiceClient();
+
+            // A. Check Ownership
+            const { data: folderOwner } = await serviceClient
+                .from('folders')
+                .select('owner_id')
+                .eq('id', parent_id)
+                .single();
+
+            if (folderOwner && folderOwner.owner_id === userId) {
+                hasAccess = true;
+            }
+
+            // B. Check Share
+            if (!hasAccess) {
+                const { data: share } = await serviceClient
+                    .from('shares')
+                    .select('*')
+                    .eq('resource_id', parent_id)
+                    .eq('grantee_user_id', userId)
+                    .single();
+
+                if (share) hasAccess = true;
+            }
+
+            if (hasAccess) {
+                // Use Service Client to fetch subfolders (Bypass RLS)
+                query = serviceClient
+                    .from('folders')
+                    .select('*')
+                    .eq('is_deleted', false)
+                    .eq('parent_id', parent_id);
+            } else {
+                query = query.eq('parent_id', parent_id);
+            }
         } else {
             // Root "My Drive": Only show my folders
             query = query.eq('owner_id', userId).is('parent_id', null);

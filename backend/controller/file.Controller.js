@@ -9,6 +9,14 @@ const getAuthClient = (req) => {
     );
 }
 
+// Helper: Service Client for bypassing RLS (Restricted Use)
+const getServiceClient = () => {
+    return createClient(
+        process.env.VITE_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_KEY
+    );
+}
+
 const uploadFileMetadata = async (req, res) => {
     const { name, size, type, url, parent_id } = req.body;
     const userId = req.user.id;
