@@ -181,11 +181,65 @@ exports.renameFolder = async (req, res) => {
             return res.status(400).json({ error: "New name is required" });
         }
 
-        const { data, error } = await getAuthClient(req)
+        const client = getServiceClient();
+
+        // Check Access
+        // 1. Is Owner?
+        let hasPermission = false;
+        const { data: folder } = await client.from('folders').select('owner_id, parent_id').eq('id', folderId).single();
+
+        if (!folder) return res.status(404).json({ error: "Folder not found" });
+
+        if (folder.owner_id === userId) {
+            hasPermission = true;
+        } else {
+            // 2. Recursive Check for Editor Share
+            let currentId = folderId;
+            let attempts = 0;
+            // First check the folder itself, then parents
+            // Actually, for rename, if I'm an editor of the folder itself, I can rename it? 
+            // Usually yes. Or if I'm editor of parent.
+
+            // We check the folder itself first
+            const { data: share } = await client
+                .from('shares')
+                .select('role')
+                .eq('resource_id', folderId)
+                .eq('grantee_user_id', userId)
+                .single();
+            if (share && share.role === 'editor') hasPermission = true;
+
+            // Traverse up
+            let currParent = folder.parent_id;
+            while (!hasPermission && currParent && attempts < 20) {
+                const { data: parentShare } = await client
+                    .from('shares')
+                    .select('role')
+                    .eq('resource_id', currParent)
+                    .eq('grantee_user_id', userId)
+                    .single();
+
+                if (parentShare && parentShare.role === 'editor') {
+                    hasPermission = true;
+                    break;
+                }
+
+                // Get next parent
+                const { data: parent } = await client.from('folders').select('parent_id, owner_id').eq('id', currParent).single();
+                if (parent.owner_id === userId) { hasPermission = true; break; } // If I own an ancestor, I have rights
+                currParent = parent ? parent.parent_id : null;
+                attempts++;
+            }
+        }
+
+        if (!hasPermission) {
+            return res.status(403).json({ error: "Unauthorized: Editor access required" });
+        }
+
+        const { data, error } = await client
             .from('folders')
             .update({ name })
             .eq('id', folderId)
-            .eq('owner_id', userId)
             .select()
             .single();
 
@@ -205,16 +259,45 @@ exports.deleteFolder = async (req, res) => {
     try {
         const folderId = req.params.id;
         const userId = req.user.id;
+        const client = getServiceClient();
 
-        // Soft Delete: Set is_deleted = true AND deleted_at = Now
-        const { data, error } = await getAuthClient(req)
+        // Check Access (Similar Logic)
+        let hasPermission = false;
+        const { data: folder } = await client.from('folders').select('owner_id, parent_id').eq('id', folderId).single();
+        if (!folder) return res.status(404).json({ error: "Folder not found" });
+
+        if (folder.owner_id === userId) {
+            hasPermission = true;
+        } else {
+            // Recursive Check
+            let currentId = folderId;
+            let currParent = folder.parent_id;
+            // Check folder itself
+            const { data: share } = await client.from('shares').select('role').eq('resource_id', folderId).eq('grantee_user_id', userId).single();
+            if (share && share.role === 'editor') hasPermission = true;
+
+            let attempts = 0;
+            while (!hasPermission && currParent && attempts < 20) {
+                const { data: parentShare } = await client.from('shares').select('role').eq('resource_id', currParent).eq('grantee_user_id', userId).single();
+                if (parentShare && parentShare.role === 'editor') { hasPermission = true; break; }
+
+                const { data: parent } = await client.from('folders').select('parent_id, owner_id').eq('id', currParent).single();
+                if (parent && parent.owner_id === userId) { hasPermission = true; break; }
+                currParent = parent ? parent.parent_id : null;
+                attempts++;
+            }
+        }
+
+        if (!hasPermission) return res.status(403).json({ error: "Unauthorized" });
+
+        // Soft Delete
+        const { data, error } = await client
             .from('folders')
             .update({
                 is_deleted: true,
                 deleted_at: new Date().toISOString()
             })
             .eq('id', folderId)
-            .eq('owner_id', userId)
             .select()
             .single();
 
@@ -235,17 +318,73 @@ exports.moveFolder = async (req, res) => {
         const folderId = req.params.id;
         const { parent_id } = req.body; // New parent folder ID (or null for root)
         const userId = req.user.id;
+        const client = getServiceClient();
 
         // Prevent moving folder into itself (basic check, could be recursive)
         if (folderId === parent_id) {
             return res.status(400).json({ error: "Cannot move folder into itself" });
         }
 
-        const { data, error } = await getAuthClient(req)
+        // Check Access to SOURCE (Folder being moved)
+        let hasPermission = false;
+        const { data: folder } = await client.from('folders').select('owner_id, parent_id').eq('id', folderId).single();
+        if (!folder) return res.status(404).json({ error: "Folder not found" });
+
+        if (folder.owner_id === userId) hasPermission = true;
+        else {
+            // Recursive Check
+            let currParent = folder.parent_id;
+            // Check folder itself
+            const { data: share } = await client.from('shares').select('role').eq('resource_id', folderId).eq('grantee_user_id', userId).single();
+            if (share && share.role === 'editor') hasPermission = true;
+
+            let attempts = 0;
+            while (!hasPermission && currParent && attempts < 20) {
+                const { data: parentShare } = await client.from('shares').select('role').eq('resource_id', currParent).eq('grantee_user_id', userId).single();
+                if (parentShare && parentShare.role === 'editor') { hasPermission = true; break; }
+
+                const { data: parent } = await client.from('folders').select('parent_id, owner_id').eq('id', currParent).single();
+                if (parent && parent.owner_id === userId) { hasPermission = true; break; }
+
+                currParent = parent ? parent.parent_id : null;
+                attempts++;
+            }
+        }
+        if (!hasPermission) return res.status(403).json({ error: "Unauthorized" });
+
+        // Check Access to DESTINATION (parent_id)
+        // If parent_id is null (Root), user must be authenticated (always true here). 
+        // Logic: You can move shared items to your own root.
+        // Or if moving to another folder, you must have write access to that folder too.
+        if (parent_id) {
+            let hasDestPermission = false;
+            const { data: destFolder } = await client.from('folders').select('owner_id, parent_id').eq('id', parent_id).single();
+            if (destFolder.owner_id === userId) hasDestPermission = true;
+            else {
+                // Check if I'm editor of destination
+                // ... (Simplified: If I can see it, I can likely move to it? strict: need Editor)
+                // For now, let's assume if you can see it (Shared), you can move into it.
+                // Ideally check for 'editor' role on destination path.
+                // Re-using logic:
+                let currP = parent_id;
+                let att = 0;
+                while (!hasDestPermission && currP && att < 20) {
+                    const { data: pShare } = await client.from('shares').select('role').eq('resource_id', currP).eq('grantee_user_id', userId).single();
+                    if (pShare && pShare.role === 'editor') { hasDestPermission = true; break; }
+                    const { data: p } = await client.from('folders').select('parent_id, owner_id').eq('id', currP).single();
+                    if (p && p.owner_id === userId) { hasDestPermission = true; break; }
+                    currP = p ? p.parent_id : null;
+                    att++;
+                }
+            }
+            if (!hasDestPermission) return res.status(403).json({ error: "Cannot move to read-only folder" });
+        }
+
+
+        const { data, error } = await client
             .from('folders')
             .update({ parent_id: parent_id || null })
             .eq('id', folderId)
-            .eq('owner_id', userId)
             .select()
             .single();
 

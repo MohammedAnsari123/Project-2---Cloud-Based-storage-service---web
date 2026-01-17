@@ -20,9 +20,33 @@ const getServiceClient = () => {
 const uploadFileMetadata = async (req, res) => {
     const { name, size, type, url, parent_id } = req.body;
     const userId = req.user.id;
-    const supabase = getAuthClient(req);
+    const client = getServiceClient();
 
-    const { data, error } = await supabase
+    // Check Upload Permission
+    if (parent_id) {
+        let hasPermission = false;
+        // Check Owner of parent
+        const { data: parent } = await client.from('folders').select('owner_id, parent_id').eq('id', parent_id).single();
+        if (parent && parent.owner_id === userId) hasPermission = true;
+
+        // Recursive Check for Editor
+        let currParent = parent_id;
+        let attempts = 0;
+        while (!hasPermission && currParent && attempts < 20) {
+            const { data: share } = await client.from('shares').select('role').eq('resource_id', currParent).eq('grantee_user_id', userId).single();
+            if (share && share.role === 'editor') { hasPermission = true; break; }
+
+            const { data: p } = await client.from('folders').select('owner_id, parent_id').eq('id', currParent).single();
+            if (p && p.owner_id === userId) { hasPermission = true; break; }
+
+            currParent = p ? p.parent_id : null;
+            attempts++;
+        }
+
+        if (!hasPermission) return res.status(403).json({ error: "Unauthorized upload" });
+    }
+
+    const { data, error } = await client
         .from('files')
         .insert([{
             name,
@@ -103,16 +127,41 @@ const getFiles = async (req, res) => {
 const deleteFile = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
+    const client = getServiceClient();
+
+    // Check Access
+    let hasPermission = false;
+    const { data: file } = await client.from('files').select('owner_id, folder_id').eq('id', id).single();
+    if (!file) return res.status(404).json({ error: "File not found" });
+
+    if (file.owner_id === userId) hasPermission = true;
+    else {
+        // Check if I have editor access to the file's folder (Recursive)
+        let currParent = file.folder_id;
+        let attempts = 0;
+        while (!hasPermission && currParent && attempts < 20) {
+            const { data: share } = await client.from('shares').select('role').eq('resource_id', currParent).eq('grantee_user_id', userId).single();
+            if (share && share.role === 'editor') { hasPermission = true; break; }
+
+            const { data: p } = await client.from('folders').select('owner_id, parent_id').eq('id', currParent).single();
+            if (p && p.owner_id === userId) { hasPermission = true; break; }
+
+            currParent = p ? p.parent_id : null;
+            attempts++;
+        }
+    }
+
+    if (!hasPermission) return res.status(403).json({ error: "Unauthorized" });
+
 
     // Soft Delete: Just update the flag
-    const { error } = await getAuthClient(req)
+    const { error } = await client
         .from('files')
         .update({
             is_deleted: true,
             deleted_at: new Date().toISOString()
         })
         .eq('id', id)
-        .eq('owner_id', userId);
 
     if (error) {
         return res.status(400).json({ error: error.message })
@@ -126,14 +175,37 @@ const renameFile = async (req, res) => {
         const { id } = req.params;
         const { name } = req.body;
         const userId = req.user.id;
+        const client = getServiceClient();
 
         if (!name) return res.status(400).json({ error: "Name is required" });
 
-        const { data, error } = await getAuthClient(req)
+        // Check Access
+        let hasPermission = false;
+        const { data: file } = await client.from('files').select('owner_id, folder_id').eq('id', id).single();
+        if (!file) return res.status(404).json({ error: "File not found" });
+
+        if (file.owner_id === userId) hasPermission = true;
+        else {
+            // Recursive check up from file.folder_id
+            let currParent = file.folder_id;
+            let attempts = 0;
+            while (!hasPermission && currParent && attempts < 20) {
+                const { data: share } = await client.from('shares').select('role').eq('resource_id', currParent).eq('grantee_user_id', userId).single();
+                if (share && share.role === 'editor') { hasPermission = true; break; }
+
+                const { data: p } = await client.from('folders').select('owner_id, parent_id').eq('id', currParent).single();
+                if (p && p.owner_id === userId) { hasPermission = true; break; }
+
+                currParent = p ? p.parent_id : null;
+                attempts++;
+            }
+        }
+        if (!hasPermission) return res.status(403).json({ error: "Unauthorized" });
+
+        const { data, error } = await client
             .from('files')
             .update({ name })
             .eq('id', id)
-            .eq('owner_id', userId)
             .select()
             .single();
 
@@ -151,12 +223,49 @@ const moveFile = async (req, res) => {
         const { id } = req.params;
         const { parent_id } = req.body;
         const userId = req.user.id;
+        const client = getServiceClient();
 
-        const { data, error } = await getAuthClient(req)
+        // Check Access Source
+        let hasPermission = false;
+        const { data: file } = await client.from('files').select('owner_id, folder_id').eq('id', id).single();
+        if (!file) return res.status(404).json({ error: "File not found" });
+
+        if (file.owner_id === userId) hasPermission = true;
+        else {
+            let currParent = file.folder_id;
+            let attempts = 0;
+            while (!hasPermission && currParent && attempts < 20) {
+                const { data: share } = await client.from('shares').select('role').eq('resource_id', currParent).eq('grantee_user_id', userId).single();
+                if (share && share.role === 'editor') { hasPermission = true; break; }
+                const { data: p } = await client.from('folders').select('owner_id, parent_id').eq('id', currParent).single();
+                if (p && p.owner_id === userId) { hasPermission = true; break; }
+                currParent = p ? p.parent_id : null;
+                attempts++;
+            }
+        }
+        if (!hasPermission) return res.status(403).json({ error: "Unauthorized Source" });
+
+        // Check Access Destination
+        if (parent_id) {
+            let hasDestPermission = false;
+            let currP = parent_id;
+            let att = 0;
+            while (!hasDestPermission && currP && att < 20) {
+                const { data: share } = await client.from('shares').select('role').eq('resource_id', currP).eq('grantee_user_id', userId).single();
+                if (share && share.role === 'editor') { hasDestPermission = true; break; }
+                const { data: p } = await client.from('folders').select('owner_id, parent_id').eq('id', currP).single();
+                if (p && p.owner_id === userId) { hasDestPermission = true; break; }
+                currP = p ? p.parent_id : null;
+                att++;
+            }
+            if (!hasDestPermission) return res.status(403).json({ error: "Unauthorized Destination" });
+        }
+
+
+        const { data, error } = await client
             .from('files')
             .update({ folder_id: parent_id || null })
             .eq('id', id)
-            .eq('owner_id', userId)
             .select()
             .single();
 
